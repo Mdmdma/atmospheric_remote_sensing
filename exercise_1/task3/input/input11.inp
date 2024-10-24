@@ -1,0 +1,17 @@
+data_files_path /opt/libRadtran/data/
+atmosphere_file /opt/libRadtran/data/atmmod/afglus.dat # Location of the extraterrestrial spectrum
+# source solar /opt/libRadtran/data/solar_flux/atlas_plus_modtran
+source solar /opt/libRadtran/data/solar_flux/kurudz_0.1nm.dat
+mol_modify O3 200. DU    # Set ozone column
+mol_modify H2O 31 MM
+aerosol_default
+aerosol_modify tau set 0.1
+aerosol_modify ssa set 0.85
+#aerosol_angstrom 1.5 0.1
+day_of_year 170          # Correct for Earth-Sun distance
+albedo 0.2              # Surface albedo
+sza 40                # Solar zenith angle
+rte_solver disort        # Radiative transfer equation solver
+number_of_streams  6     # Number of streams
+wavelength 300.0 2000.0   # Wavelength range [nm]
+output_user lambda eglo  edir edn

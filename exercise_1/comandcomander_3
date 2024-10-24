@@ -1,0 +1,65 @@
+#!/bin/bash
+
+# Get experiment name from first argument
+EXPERIMENT_NAME="3"
+
+# Create experiment directory structure
+EXPERIMENT_DIR="task${EXPERIMENT_NAME}"
+INPUT_DIR="${EXPERIMENT_DIR}/input"
+OUTPUT_DIR="${EXPERIMENT_DIR}/output"
+
+# Create directories
+mkdir -p "${INPUT_DIR}"
+mkdir -p "${OUTPUT_DIR}"
+
+echo "Created experiment directory: ${EXPERIMENT_DIR}"
+echo "Input files will be stored in: ${INPUT_DIR}"
+echo "Output files will be stored in: ${OUTPUT_DIR}"
+
+index=1
+for mol_modify_H2O in $(seq 1 3 40); do
+    sza=40
+    mol_modify_O3=200
+    # mol_modify_H2O=10
+    day_of_year=170
+    albedo=0.2
+    wavelength_start=300.0
+    wavelength_end=2000.0
+
+    # Create input file in the input directory
+    cat << EOF > "${INPUT_DIR}/input${index}.inp"
+data_files_path /opt/libRadtran/data/
+atmosphere_file /opt/libRadtran/data/atmmod/afglus.dat # Location of the extraterrestrial spectrum
+# source solar /opt/libRadtran/data/solar_flux/atlas_plus_modtran
+source solar /opt/libRadtran/data/solar_flux/kurudz_0.1nm.dat
+mol_modify O3 ${mol_modify_O3}. DU    # Set ozone column
+mol_modify H2O ${mol_modify_H2O} MM
+aerosol_default
+aerosol_modify tau set 0.1
+aerosol_modify ssa set 0.85
+#aerosol_angstrom 1.5 0.1
+day_of_year ${day_of_year}          # Correct for Earth-Sun distance
+albedo ${albedo}              # Surface albedo
+sza ${sza}                # Solar zenith angle
+rte_solver disort        # Radiative transfer equation solver
+number_of_streams  6     # Number of streams
+wavelength ${wavelength_start} ${wavelength_end}   # Wavelength range [nm]
+output_user lambda eglo  edir edn
+EOF
+
+    echo "File '${INPUT_DIR}/input${index}.inp' created successfully."
+
+    # Run Docker command with input and output in their respective directories
+    docker_command="docker run -i siarhei/libradtran uvspec < ${INPUT_DIR}/input${index}.inp >${OUTPUT_DIR}/out${index}"
+    echo "$docker_command"
+
+    # Run the Docker command
+    if eval "$docker_command"; then
+        echo "Docker command executed successfully."
+    else
+        echo "Error running Docker command"
+    fi
+    
+    # Increment the index for the next iteration
+    ((index++))
+done
