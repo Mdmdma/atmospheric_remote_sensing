@@ -17,6 +17,9 @@ calitoo = pd.read_csv(r'../Daten calitoo/0124_20240604_075512_10_ours_adjusted.t
 precipitation['Date'] = pd.to_datetime(precipitation['Date'])
 calitoo['Date'] = pd.to_datetime(calitoo['Date'])
 
+calitoo['SZA'] = 90 - calitoo['Elevation']
+precipitation['prev_day_p'] = precipitation['p'].shift(1)
+
 calitoo_subset = calitoo[calitoo['Date'].dt.month.isin([9,10,11])]
 # basic outlier removal
 calitoo_subset = calitoo_subset[calitoo_subset['AOT465'] < 0.5]
@@ -31,6 +34,7 @@ plt.show()
 
 # merge precipitation data with calitoo data
 p_cal = pd.merge(precipitation, calitoo_subset, on='Date', how='outer')
+#p_cal['prev_day_p'] = p_cal['p'].shift(1)
 
 fig, (ax1, ax2) = plt.subplots(2,1, sharex=True)
 
@@ -79,4 +83,38 @@ ax1.grid(True)
 ax2.grid(True)
 plt.show()
 
+## correlation
+p_cal_clean = p_cal.dropna(subset=['AOT465'])
+p_cal_clean = p_cal_clean[p_cal_clean['AOT465'] != 0]
 
+plt.figure(figsize=(10, 6))
+scatter = plt.scatter(p_cal_clean['p'],p_cal_clean['AOT465'],c=p_cal_clean['SZA'],cmap='Purples')
+# Add color bar with a legend label
+colorbar = plt.colorbar(scatter)  # Associate color bar with scatter plot
+colorbar.set_label('SZA [°]')  # Label for the color bar
+plt.ylabel('AOT465')
+plt.xlabel('precipitation [mm]')
+
+plt.grid(True)
+plt.show()
+# cor coefficient
+from scipy.stats import spearmanr
+
+cor_coeff, p_value = spearmanr(p_cal_clean['p'],p_cal_clean['AOT465'])
+ # cor_coeff = -0.178, p_value = 0.08
+ 
+## precipitation shift one day
+plt.figure(figsize=(10, 6))
+scatter = plt.scatter(p_cal_clean['prev_day_p'],p_cal_clean['AOT465'],c=p_cal_clean['SZA'],cmap='Purples')
+# Add color bar with a legend label
+colorbar = plt.colorbar(scatter)  # Associate color bar with scatter plot
+colorbar.set_label('SZA [°]')  # Label for the color bar
+plt.ylabel('AOT465')
+plt.xlabel('precipitation of the day before [mm]')
+
+plt.grid(True)
+plt.show()
+# cor coefficient
+from scipy.stats import spearmanr
+
+cor_coeff_prev, p_value_prev = spearmanr(p_cal_clean['prev_day_p'],p_cal_clean['AOT465']) 
