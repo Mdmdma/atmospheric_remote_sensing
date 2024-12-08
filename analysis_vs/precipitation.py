@@ -118,3 +118,89 @@ plt.show()
 from scipy.stats import spearmanr
 
 cor_coeff_prev, p_value_prev = spearmanr(p_cal_clean['prev_day_p'],p_cal_clean['AOT465']) 
+
+## plot I vs SZ and color depending on location
+from sklearn.cluster import DBSCAN
+import numpy as np
+import matplotlib.cm as cm
+
+## function to convert DDM to DD coordinates
+def ddm_to_dd(ddm_coord):
+    """
+    Converts Degrees and Decimal Minutes (DDM) to Decimal Degrees (DD),
+    handling cases where longitude has leading zeros.
+    
+    Args:
+        ddm_coord (str): Coordinate in DDM format (e.g., "00830.36148E").
+    
+    Returns:
+        float: Coordinate in Decimal Degrees.
+    """
+    # Extract hemisphere (last character)
+    hemisphere = ddm_coord[-1]
+    
+    # Remove hemisphere from the coordinate
+    ddm_coord = ddm_coord[:-1]
+    
+    # Determine the number of degrees 
+    if ddm_coord[0] == '0':  # For longitude with leading zero
+        degrees = int(ddm_coord[:3])  # First 3 characters are degrees
+        minutes = float(ddm_coord[3:])  # Remaining are minutes
+    else:  # For latitude or longitude without leading zero
+        degrees = int(ddm_coord[:2])  # First 2 characters are degrees
+        minutes = float(ddm_coord[2:])  # Remaining are minutes
+    
+    # Convert to Decimal Degrees
+    decimal_degrees = degrees + (minutes / 60)
+    
+    # Adjust for hemisphere
+    if hemisphere in ['S', 'W']:
+        decimal_degrees *= -1
+    
+    return decimal_degrees
+
+# convert coordinates in df
+calitoo_subset['N'] = calitoo_subset['Latitude'].apply(ddm_to_dd)
+calitoo_subset['E'] = calitoo_subset['Longitude'].apply(ddm_to_dd)
+
+# cluster points on location
+coordinates = calitoo_subset[['N','E']].to_numpy()
+epsilon = 1/6371 # convert 1 km to radians for DBSCAN
+db = DBSCAN(eps=epsilon, min_samples=1, metric='haversine').fit(np.radians(coordinates))
+
+calitoo_subset['Cluster'] = db.labels_
+
+##
+# Get unique clusters
+clusters = calitoo_subset['Cluster'].unique()
+cluster_labels = {
+    0: 'ETH Zentrum', 
+    1: 'Oerlikon', 
+    2: 'ETH Höngg', 
+    3: 'UZH Irchel', 
+    4: 'Seebach', 
+    5: 'Leimbach'
+}
+
+# Generate a colormap with distinct colors for each cluster
+colormap = cm.get_cmap('Dark2', len(clusters))  # Use 'tab10' for up to 10 distinct colors
+cluster_colors = {cluster: colormap(i) for i, cluster in enumerate(clusters)}
+
+plt.figure(figsize=(10, 6))
+
+# Plot each cluster separately
+for cluster in clusters:
+    subset = calitoo_subset[calitoo_subset['Cluster'] == cluster]
+    plt.scatter(
+        subset['SZA'], 
+        subset['AOT465'], 
+        label=cluster_labels.get(cluster, f'{cluster}'), 
+        color=cluster_colors[cluster]
+    )
+
+# Add labels and legend
+plt.ylabel('AOT465')
+plt.xlabel('SZA [°]')
+plt.grid(True)
+plt.legend(title='Location')  # Add a legend for clusters
+plt.show()
