@@ -1,3 +1,7 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
 def aeronet():
     laegern08 = pd.read_csv(r'../data_aeronet/20240801_20240831_Laegeren.txt', delimiter=',', skiprows=6)
     laegern09 = pd.read_csv(r'../data_aeronet/20240901_20240930_Laegeren.txt', delimiter=',', skiprows=6)
@@ -61,11 +65,11 @@ def calitoo(filepath):
     plt.title('Aeronet laegern')
     plt.ylim([0,1])
     plt.show()
-    return data_calitoo
+    return data_calitoo_ours
 
 data_satelite = satelite()
 data_aeronet = aeronet()
-data_calitoo = calitoo(r'../Daten calitoo/0124_20240604_075512_10_ours_adjusted.txt')
+data_calitoo_ours = calitoo(r'../Daten calitoo/0124_20240604_075512_10_ours_adjusted.txt')
 
 
 
