@@ -228,6 +228,7 @@ for key, value in variables.items():
 data = update_data(data)
 #%%
 data.to_csv(r"C:\Users\Nathalie\Documents\GitHub\atmospheric_remote_sensing\daten calitoo\preprocessed_data.csv")
+data = pd.read_csv(r"C:\Users\Nathalie\Documents\GitHub\atmospheric_remote_sensing\daten calitoo\preprocessed_data.csv")
 #%%
 data_zurich = data[data['Location'].str.contains('Zürich')]
 data_day = data_zurich[data_zurich['Date']=='2024-11-15']
