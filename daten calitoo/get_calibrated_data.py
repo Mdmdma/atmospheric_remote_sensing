@@ -163,13 +163,24 @@ def is_valid_time(time_str):
         return False
 
 def update_data(data):
+    data['Alpha'] = pd.to_numeric(data['Alpha'].str.replace(',', '.'), errors='coerce')
+    data['RÂ²'] = pd.to_numeric(data['RÂ²'].str.replace(',', '.'), errors='coerce')
+    
+    # Drop rows where either 'Alpha' or 'RÂ²' is NaN
+    data = data.dropna(subset=['Alpha', 'RÂ²'])
+    
+    data['Elevation'] = pd.to_numeric(data['Elevation'], errors='coerce')
+    
+    # Drop rows where 'elevation' is NaN
+    data = data.dropna(subset=['Elevation'])
+    
     data = data[data['Time'].apply(is_valid_time)]
     data['Datetime'] = pd.to_datetime(data['Date'] + ' ' + data['Time'])
     
     data['N'] = data['Latitude'].apply(ddm_to_dd)
     data['E'] = data['Longitude'].apply(ddm_to_dd)
     
-    data['Location'] = data.apply(lambda row: get_location(row['N'], row['E']), axis=1)
+    #data['Location'] = data.apply(lambda row: get_location(row['N'], row['E']), axis=1)
     
     data['sza_rad'] = np.deg2rad(90-data['Elevation'])
     data['air_mass'] = 1 / np.cos(data['sza_rad'])
@@ -206,59 +217,119 @@ def plot_aod(data):
     plt.tight_layout()
     plt.show()
     
-#%%
+def day_of_year(date):
+    return date.timetuple().tm_yday
+    
+def es_distance_correction(doy):
+    d0 = 1
+    d = d0 * (1 - 0.01672 * np.cos(2 * np.pi * doy / 365))
+    E0 = (d0 / d) ** 2
+    return d, E0
+#%% Load and Merge Datasets
 # Define the file path
 file_paths = [r"C:\Users\Nathalie\Documents\GitHub\atmospheric_remote_sensing\daten calitoo\0124_20240604_075512_10_ours.txt"]
               #, r"C:\Users\Nathalie\Documents\GitHub\atmospheric_remote_sensing\daten calitoo\0425_20240604_082717_10.txt"
-              #, r"C:\Users\Nathalie\Documents\GitHub\atmospheric_remote_sensing\daten calitoo\0427_20240604_082717_10.txt"# Replace with your actual file path
+              #, r"C:\Users\Nathalie\Documents\GitHub\atmospheric_remote_sensing\daten calitoo\0427_20240604_082717_10.txt"]# Replace with your actual file path
 
 preprocessed_data = []
 # Extract variables and clean data
 for file_path in file_paths:
     variables, dataset = read_and_clean_data(file_path)
     preprocessed_data.append(dataset)
-    
+   
 data = pd.concat(preprocessed_data, ignore_index=True)
 
 # Print extracted variables
 print("Extracted Variables:")
 for key, value in variables.items():
     print(f'{key}: {value}')
-#%%
+#%% Preprocessing
 data = update_data(data)
 #%%
-data.to_csv(r"C:\Users\Nathalie\Documents\GitHub\atmospheric_remote_sensing\daten calitoo\preprocessed_data.csv")
-data = pd.read_csv(r"C:\Users\Nathalie\Documents\GitHub\atmospheric_remote_sensing\daten calitoo\preprocessed_data.csv")
+data['day_of_year'] = pd.to_datetime(data['Date']).dt.dayofyear
+data['d'], data['E0'] = zip(*data['day_of_year'].apply(es_distance_correction))
+
+data = data.drop('d', axis=1)
 #%%
-data_zurich = data[data['Location'].str.contains('Zürich')]
-data_day = data_zurich[data_zurich['Date']=='2024-11-15']
+data['RAW465'] = data['RAW465']/data['E0']
+data['RAW540'] = data['RAW540']/data['E0']
+data['RAW619'] = data['RAW619']/data['E0']
 #%%
-plot_daily_aot(data)
-#%% Langley Plot without Outlier Removal
+data.to_csv(r"C:\Users\Nathalie\Documents\GitHub\atmospheric_remote_sensing\daten calitoo\preprocessed_data_all_no_location.csv")
+
+#%%Outlier Removal
+data = data[(data['Alpha']<2) & (data['RÂ²']>0.90)]
+#%% Write preprocessed data
+data.to_csv(r"C:\Users\Nathalie\Documents\GitHub\atmospheric_remote_sensing\daten calitoo\preprocessed_data_no_outliers_no_location.csv")
+
+#%% Read preprocessed data
+data = pd.read_csv(r"C:\Users\Nathalie\Documents\GitHub\atmospheric_remote_sensing\daten calitoo\preprocessed_data_all_no_location.csv")
+data_calibration= pd.read_csv(r"C:\Users\Nathalie\Documents\GitHub\atmospheric_remote_sensing\daten calitoo\preprocessed_data_no_outliers_no_location.csv")
+#%% Plot Measurements for each day
+data['Datetime'] = pd.to_datetime(data['Datetime'], errors='coerce')
+data_calibration['Datetime'] = pd.to_datetime(data_calibration['Datetime'], errors='coerce')
+#%%
+#data = data[pd.to_datetime(data['Datetime'], errors='coerce').notna()]
+plot_daily_aot(data_calibration)
+
+#%%
+#Here select dates for calibration
+date_list = ['2024-10-09']
+date_list = ['2024-07-05', '2024-06-04', '2024-07-15', '2024-07-11', '2024-07-09']
+data_days = data_calibration[data_calibration['Date'].isin(date_list)]
+
+#%% Langley Plot and Calibration Constant without Outlier Removal
 plt.figure(figsize=(10, 6))
 
 # Plot for RAW465
-calibration_constant_465 = plot_langley(data_day, 'RAW465', 'blue', '465nm')
+calibration_constant_465 = plot_langley(data_days, 'RAW465', 'blue', '465nm')
 
 # Plot for RAW540
-calibration_constant_540 = plot_langley(data_day, 'RAW540', 'green', '540nm')
+calibration_constant_540 = plot_langley(data_days, 'RAW540', 'green', '540nm')
 
 # Plot for RAW619
-calibration_constant_619= plot_langley(data_day, 'RAW619', 'red', '619nm')
+calibration_constant_619= plot_langley(data_days, 'RAW619', 'red', '619nm')
 
 # Customize and show the plot
 plt.xlabel('Air Mass')
 plt.ylabel('log(V)')
-plt.title('Langley Plot for Blue (465), Green (540) and Red (619)\n On 2024-11-15')
+plt.title('Langley Plot for Blue (465), Green (540) and Red (619)\n')
 legend = plt.legend(title='λ')
 plt.setp(legend.get_title(), fontsize='13', fontweight='bold') 
 plt.show()
+#%%
+expected_cc_465 = 3490
+expected_cc_540 = 3551
+expected_cc_619 = 2568
 
+diff_465 = round((abs(expected_cc_465-calibration_constant_465)/expected_cc_465)*100, 1)
+diff_540 = round((abs(expected_cc_540-calibration_constant_540)/expected_cc_540)*100, 1)
+diff_619 = round((abs(expected_cc_619-calibration_constant_619)/expected_cc_619)*100, 1)
+
+print(f"Deviation between expected calibration value and retrieved calibration value for 465nm: {diff_465}%")
+print(f"Deviation between expected calibration value and retrieved calibration value for 540nm: {diff_540}%")
+print(f"Deviation between expected calibration value and retrieved calibration value for 619nm: {diff_619}%")
 #%%
 #calibration_constant, cleaned_data = plot_langley_with_outlier_removal(data_day, 'RAW465', color='blue', label='465nm', threshold=2.0)
-#%%
-data_zurich['tau_aerosols_465'] = ((np.log(calibration_constant_465) - np.log(data_zurich['RAW465'])) / data_zurich['air_mass']) - variables['RAY_465']
-data_zurich['tau_aerosols_540'] = ((np.log(calibration_constant_540) - np.log(data_zurich['RAW540'])) / data_zurich['air_mass']) - variables['RAY_540'] - variables['OZ_540']
-data_zurich['tau_aerosols_619'] = ((np.log(calibration_constant_619) - np.log(data_zurich['RAW619'])) / data_zurich['air_mass']) - variables['RAY_619'] - variables['OZ_619']
-#%%
+#%% Calculate AOD
+data['precalibrated_AOT465'] = data['AOT465']
+data['precalibrated_AOT540'] = data['AOT540']
+data['precalibrated_AOT619'] = data['AOT619']
+
+data['AOT465'] = ((np.log(calibration_constant_465) - np.log(data['RAW465'])) / data['air_mass']) - variables['RAY_465']
+data['AOT540'] = ((np.log(calibration_constant_540) - np.log(data['RAW540'])) / data['air_mass']) - variables['RAY_540'] - variables['OZ_540']
+data['AOT619'] = ((np.log(calibration_constant_619) - np.log(data['RAW619'])) / data['air_mass']) - variables['RAY_619'] - variables['OZ_619']
+
+data['tau_aerosols_465_calitoo'] = ((np.log(variables['CN0_465']) - np.log(data['RAW465'])) / data['air_mass']) - variables['RAY_465']
+data['tau_aerosols_540_calitoo'] = ((np.log(variables['CN0_540']) - np.log(data['RAW540'])) / data['air_mass']) - variables['RAY_540'] - variables['OZ_540']
+data['tau_aerosols_619_calitoo'] = ((np.log(variables['CN0_619']) - np.log(data['RAW619'])) / data['air_mass']) - variables['RAY_619'] - variables['OZ_619']
+
+data['tau_aerosols_465_expected'] = ((np.log(expected_cc_465) - np.log(data['RAW465'])) / data['air_mass']) - variables['RAY_465']
+data['tau_aerosols_540_expected'] = ((np.log(expected_cc_540) - np.log(data['RAW540'])) / data['air_mass']) - variables['RAY_540'] - variables['OZ_540']
+data['tau_aerosols_619_expected'] = ((np.log(expected_cc_619) - np.log(data['RAW619'])) / data['air_mass']) - variables['RAY_619'] - variables['OZ_619']
+#%% Plot AOD over time
+plot_aod(data)
+#%% For comparison with precipitation
+data_zurich = data[data['Location'].str.contains('Zürich')]
+#%% Plot AOD over time
 plot_aod(data_zurich)
