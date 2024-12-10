@@ -1,26 +1,31 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
-def aeronet():
-    laegern08 = pd.read_csv(r'../data_aeronet/20240801_20240831_Laegeren.txt', delimiter=',', skiprows=6)
-    laegern09 = pd.read_csv(r'../data_aeronet/20240901_20240930_Laegeren.txt', delimiter=',', skiprows=6)
-    laegern10 = pd.read_csv(r'../data_aeronet/20241001_20241031_Laegeren.txt', delimiter=',', skiprows=6)
-    data_aeronet = pd.concat([laegern08, laegern09, laegern10], axis=0, ignore_index=True)
+def aeronet(location):
+    data_aeronet = pd.DataFrame()
+    folder_path = f'../data_aeronet/{location}/'
+    for filename in os.listdir(folder_path):
+            # Full path to the file
+            file_path = os.path.join(folder_path, filename)
+            # Check if it's a file (not a subdirectory)
+            if os.path.isfile(file_path):
+                #print(filename)
+                data_aeronet = pd.concat([data_aeronet, pd.read_csv((folder_path+filename), skiprows=6, encoding='ISO-8859-9')], ignore_index=True, axis=0)
     
     data_aeronet['Date(dd:mm:yyyy)'] = pd.to_datetime(data_aeronet['Date(dd:mm:yyyy)'], format='%d:%m:%Y')
     data_aeronet = data_aeronet.replace(-9999, np.nan)
     
-    wavelengths_aer = ['AOD_340nm', 'AOD_380nm','AOD_440nm', 'AOD_500nm','AOD_675nm','AOD_500nm']
+    wavelengths_aer = ['AOD_440nm', 'AOD_500nm','AOD_675nm'] #'AOD_340nm', 'AOD_380nm',
     for wavelength in wavelengths_aer:
         plt.plot(data_aeronet['Day_of_Year'], data_aeronet[wavelength], label=wavelength)
     
-    
-    plt.scatter(data_aeronet['Day_of_Year'], np.full((data_aeronet.shape[0],), 0.02), label='Datapoints')
-    plt.legend()
+    plt.scatter(data_aeronet['Day_of_Year'], np.full((data_aeronet.shape[0],), 0.02), label='Datapoints Aero')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.xlabel('Day of year')
     plt.ylabel('AOD')
-    plt.title('Aeronet laegern')
+    plt.title(f'Aeronet {location}')
     plt.show()
     return data_aeronet
 
@@ -42,7 +47,7 @@ def satelite():
     for instrument in instruments:
         plt.plot(data_satelite['time'].dt.dayofyear, data_satelite[instrument], label=instrument )
     
-    plt.legend()
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.title('Satellite data')
     plt.xlabel('Day of year')
     plt.ylabel('AOD')
@@ -59,16 +64,17 @@ def calitoo(filepath):
     for wavelength in wavelengths_cal:
         plt.plot(data_calitoo_ours['Date'].dt.dayofyear, data_calitoo_ours[wavelength].where(data_calitoo_ours[wavelength]<0.5), label=wavelength)
     plt.scatter(data_calitoo_ours['Date'].dt.dayofyear, np.full((data_calitoo_ours.shape[0],), 0.02), label='Datapoints cal')
-    plt.legend()
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.xlabel('Day of year')
     plt.ylabel('AOD')
-    plt.title('Aeronet laegern')
+    plt.title('Calitoo')
     plt.ylim([0,1])
     plt.show()
     return data_calitoo_ours
 
+
 data_satelite = satelite()
-data_aeronet = aeronet()
+data_aeronet = aeronet('laegern')
 data_calitoo_ours = calitoo(r'../Daten calitoo/0124_20240604_075512_10_ours_adjusted.txt')
 
 
