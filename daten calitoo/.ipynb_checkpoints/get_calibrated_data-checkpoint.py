@@ -209,7 +209,7 @@ def plot_aod(data):
 #%%
 # Define the file path
 file_paths = [r"C:\Users\Nathalie\Documents\GitHub\atmospheric_remote_sensing\daten calitoo\0124_20240604_075512_10_ours.txt"]
-              #, r"C:\Users\Nathalie\Documents\GitHub\atmospheric_remote_sensing\daten calitoo\0425_20240604_082717_10.txt"
+file_paths = ["../daten calitoo/0425_20240604_082717_10.txt"]
               #, r"C:\Users\Nathalie\Documents\GitHub\atmospheric_remote_sensing\daten calitoo\0427_20240604_082717_10.txt"# Replace with your actual file path
 
 preprocessed_data = []
@@ -227,8 +227,8 @@ for key, value in variables.items():
 #%%
 data = update_data(data)
 #%%
-data.to_csv(r"C:\Users\Nathalie\Documents\GitHub\atmospheric_remote_sensing\daten calitoo\preprocessed_data.csv")
-data = pd.read_csv(r"C:\Users\Nathalie\Documents\GitHub\atmospheric_remote_sensing\daten calitoo\preprocessed_data.csv")
+#data.to_csv(r"../daten calitoo/preprocessed_data.csv")
+#data = pd.read_csv(r"C:\Users\Nathalie\Documents\GitHub\atmospheric_remote_sensing\daten calitoo\preprocessed_data.csv")
 #%%
 data_zurich = data[data['Location'].str.contains('Zürich')]
 data_day = data_zurich[data_zurich['Date']=='2024-11-15']
