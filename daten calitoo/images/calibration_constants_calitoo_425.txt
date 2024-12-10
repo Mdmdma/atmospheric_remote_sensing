@@ -1,0 +1,7 @@
+Calibration Constant for 465nm: 2956.183491884642
+Calibration Constant for 540nm: 3027.089386064407
+Calibration Constant for 619nm: 2341.143387733625
+
+Calitoo 425: Deviation between expected calibration value and retrieved calibration value for 465nm: 7.6%
+Calitoo 425: Deviation between expected calibration value and retrieved calibration value for 540nm: 4.9%
+Calitoo 425: Deviation between expected calibration value and retrieved calibration value for 619nm: 3.9%

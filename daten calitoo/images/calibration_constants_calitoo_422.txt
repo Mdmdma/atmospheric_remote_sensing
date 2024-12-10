@@ -1,0 +1,7 @@
+Calibration Constant for 465nm: 3253.7616276863337
+Calibration Constant for 540nm: 3401.2830157312837
+Calibration Constant for 619nm: 2497.5994658658246
+
+Deviation between expected calibration value and retrieved calibration value for 465nm: 4.7%
+Deviation between expected calibration value and retrieved calibration value for 540nm: 2.8%
+Deviation between expected calibration value and retrieved calibration value for 619nm: 1.8%
