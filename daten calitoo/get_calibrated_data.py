@@ -276,27 +276,38 @@ plot_daily_aot(data_calibration)
 #Here select dates for calibration
 date_list = ['2024-10-09']
 date_list = ['2024-07-05', '2024-06-04', '2024-07-15', '2024-07-11', '2024-07-09']
-data_days = data_calibration[data_calibration['Date'].isin(date_list)]
+
 
 #%% Langley Plot and Calibration Constant without Outlier Removal
-plt.figure(figsize=(10, 6))
-
-# Plot for RAW465
-calibration_constant_465 = plot_langley(data_days, 'RAW465', 'blue', '465nm')
-
-# Plot for RAW540
-calibration_constant_540 = plot_langley(data_days, 'RAW540', 'green', '540nm')
-
-# Plot for RAW619
-calibration_constant_619= plot_langley(data_days, 'RAW619', 'red', '619nm')
-
-# Customize and show the plot
-plt.xlabel('Air Mass')
-plt.ylabel('log(V)')
-plt.title('Langley Plot for Blue (465), Green (540) and Red (619)\n')
-legend = plt.legend(title='λ')
-plt.setp(legend.get_title(), fontsize='13', fontweight='bold') 
-plt.show()
+calibration_values_blue= []
+calibration_values_green= []
+calibration_values_red= []
+for day in date_list:
+    data_days = data_calibration[data_calibration['Date']==day]
+    plt.figure(figsize=(10, 6))
+    
+    # Plot for RAW465
+    calibration_constant_465 = plot_langley(data_days, 'RAW465', 'blue', '465nm')
+    calibration_values_blue.append(calibration_constant_465)
+    # Plot for RAW540
+    calibration_constant_540 = plot_langley(data_days, 'RAW540', 'green', '540nm')
+    calibration_values_green.append(calibration_constant_540)
+    # Plot for RAW619
+    calibration_constant_619= plot_langley(data_days, 'RAW619', 'red', '619nm')
+    calibration_values_red.append(calibration_constant_619)
+    # Customize and show the plot
+    plt.xlabel('Air Mass')
+    plt.ylabel('log(V)')
+    plt.title(f'Langley Plot for Blue (465), Green (540) and Red (619)\nDate:{day}')
+    legend = plt.legend(title='λ')
+    
+    plt.xlim([0, 2.3])
+    plt.setp(legend.get_title(), fontsize='13', fontweight='bold') 
+    plt.show()
+    
+calibration_constant_465 = np.mean(calibration_values_blue)
+calibration_constant_540 = np.mean(calibration_values_green)
+calibration_constant_619 = np.mean(calibration_values_red)
 #%%
 expected_cc_465 = 3490
 expected_cc_540 = 3551
@@ -327,6 +338,8 @@ data['tau_aerosols_619_calitoo'] = ((np.log(variables['CN0_619']) - np.log(data[
 data['tau_aerosols_465_expected'] = ((np.log(expected_cc_465) - np.log(data['RAW465'])) / data['air_mass']) - variables['RAY_465']
 data['tau_aerosols_540_expected'] = ((np.log(expected_cc_540) - np.log(data['RAW540'])) / data['air_mass']) - variables['RAY_540'] - variables['OZ_540']
 data['tau_aerosols_619_expected'] = ((np.log(expected_cc_619) - np.log(data['RAW619'])) / data['air_mass']) - variables['RAY_619'] - variables['OZ_619']
+#%%
+data.to_csv(r"preprocessed_data_with_AOD_all.csv")
 #%% Plot AOD over time
 plot_aod(data)
 #%% For comparison with precipitation
