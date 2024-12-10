@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+from IPython.display import display 
 
 def aeronet(location):
     data_aeronet = pd.DataFrame()
@@ -19,31 +20,46 @@ def aeronet(location):
     
     wavelengths_aer = ['AOD_440nm', 'AOD_500nm','AOD_675nm'] #'AOD_340nm', 'AOD_380nm',
     for wavelength in wavelengths_aer:
-        plt.plot(data_aeronet['Day_of_Year'], data_aeronet[wavelength], label=wavelength)
+        plt.plot(data_aeronet['Day_of_Year'], data_aeronet[wavelength], label=f'{wavelength} Aeronet')
     
     plt.scatter(data_aeronet['Day_of_Year'], np.full((data_aeronet.shape[0],), 0.02), label='Datapoints Aero')
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.xlabel('Day of year')
     plt.ylabel('AOD')
-    plt.title(f'Aeronet {location}')
+    plt.ylim([0,0.6])
+    plt.xlim([245,340])
+    plt.title(f'Comparison Calitoo with Aeronet {location}')
     plt.show()
     return data_aeronet
 
 
-def satelite():
+def satelite(start_day, end_day):
     
-    modisAOD = pd.read_csv(r'../data_satelite/g4.areaAvgTimeSeries.MOD08_D3_6_1_Aerosol_Optical_Depth_Land_Ocean_Mean.20240601-20241201.7E_47N_8E_48N.csv', skiprows=7)
-    modis_deep_blue = pd.read_csv(r'../data_satelite/g4.areaAvgTimeSeries.MOD08_D3_6_1_Deep_Blue_Aerosol_Optical_Depth_550_Land_Mean.20240601-20241201.7E_47N_8E_48N.csv', skiprows=7)
-    AOD_463 = pd.read_csv(r'../data_satelite/g4.areaAvgTimeSeries.OMAEROe_003_AbsorbingAerosolOpticalThicknessMW_463_0.20240601-20241201.7E_47N_8E_48N.csv', skiprows=7)
+    modisAOD_terra = pd.read_csv(r'../data_satelite/g4.areaAvgTimeSeries.MOD08_D3_6_1_Aerosol_Optical_Depth_Land_Ocean_Mean.20240801-20241130.7E_47N_8E_48N.csv', skiprows=7)
+    modis_deep_blue_terra = pd.read_csv(r'../data_satelite/g4.areaAvgTimeSeries.MOD08_D3_6_1_Deep_Blue_Aerosol_Optical_Depth_550_Land_Mean.20240801-20241130.7E_47N_8E_48N.csv', skiprows=7)
+    modisAOD_aqua = pd.read_csv(r'../data_satelite/g4.areaAvgTimeSeries.MYD08_D3_6_1_Aerosol_Optical_Depth_Land_Ocean_Mean.20240801-20241130.7E_47N_8E_48N.csv', skiprows=7)
+    modis_deep_blue_aqua = pd.read_csv(r'../data_satelite/g4.areaAvgTimeSeries.MYD08_D3_6_1_Aerosol_Optical_Depth_Land_Ocean_Mean.20240801-20241130.7E_47N_8E_48N.csv', skiprows=7)
+
+    omiAOD_483 = pd.read_csv(r'../data_satelite/g4.areaAvgTimeSeries.OMAEROe_003_AerosolOpticalThicknessMW_483_5.20240801-20241130.7E_47N_8E_48N.csv', skiprows=7)
+    omiAOD_500_absorbing = pd.read_csv(r'../data_satelite/g4.areaAvgTimeSeries.OMAERUVd_003_FinalAerosolAbsOpticalDepth500.20240801-20241130.7E_47N_8E_48N.csv', skiprows=7)
+    omiAOD_500_total= pd.read_csv(r'../data_satelite/g4.areaAvgTimeSeries.OMAERUVd_003_FinalAerosolOpticalDepth500.20240801-20241130.7E_47N_8E_48N.csv', skiprows=7)
     
-    modisAOD = modisAOD.replace(-9999, np.nan)
-    modis_deep_blue = modis_deep_blue.replace(-9999,np.nan)
-    AOD_463 = AOD_463.replace(-32767, np.nan)
-    data_satelite = pd.concat([modisAOD, modis_deep_blue.drop(columns='time'),AOD_463.drop(columns='time')], axis=1)
+    
+    modisAOD_terra = modisAOD_terra.replace(-9999, np.nan)
+    modis_deep_blue_terra = modis_deep_blue_terra.replace(-9999, np.nan)
+    modisAOD_aqua = modisAOD_aqua.replace(-9999, np.nan)
+    modis_deep_blue_aqua = modis_deep_blue_aqua.replace(-9999, np.nan)
+    omiAOD_483 = omiAOD_483.replace(-32767, np.nan)
+    omiAOD_500_absorbing = omiAOD_500_absorbing.replace(-1.267651E30, np.nan)
+    omiAOD_500_total = omiAOD_500_total.replace(-1.267651E30, np.nan)
+
+    data_satelite = pd.concat([modisAOD_terra, modisAOD_aqua.drop(columns='time'), modis_deep_blue_terra.drop(columns='time'),
+                                modis_deep_blue_aqua.drop(columns='time'), omiAOD_483.drop(columns='time'), omiAOD_500_absorbing.drop(columns='time'), omiAOD_500_total.drop(columns='time')], axis=1)
+    display(data_satelite)
     data_satelite['time'] = pd.to_datetime(data_satelite['time'], format='%Y-%m-%d')
-    data_satelite.columns = ['time', 'Modis AOD', 'Modis deep blue', 'OMAE']
+    data_satelite.columns = ['time', 'Modis AOD Terra', 'Modis AOD Aqua', 'Modis deep blue Terra', 'Modis deep blue Aqua', 'OMI AOD 483nm', 'OMI AOD absorbing 500nm', 'Omi AOD total 500nm']
     
-    instruments = ['Modis AOD', 'Modis deep blue', 'OMAE']
+    instruments = ['Modis AOD Terra', 'Modis AOD Aqua', 'Modis deep blue Terra', 'Modis deep blue Aqua', 'OMI AOD 483nm', 'OMI AOD absorbing 500nm', 'Omi AOD total 500nm']
     for instrument in instruments:
         plt.plot(data_satelite['time'].dt.dayofyear, data_satelite[instrument], label=instrument )
     
@@ -51,6 +67,8 @@ def satelite():
     plt.title('Satellite data')
     plt.xlabel('Day of year')
     plt.ylabel('AOD')
+    plt.ylim([0,0.6])
+    plt.xlim([start_day, end_day])
     plt.show()
     return data_satelite
 
@@ -68,12 +86,13 @@ def calitoo(filepath):
     plt.xlabel('Day of year')
     plt.ylabel('AOD')
     plt.title('Calitoo')
+    
     plt.ylim([0,1])
     plt.show()
     return data_calitoo_ours
 
 
-data_satelite = satelite()
+data_satelite = satelite(245,340) 
 data_aeronet = aeronet('laegern')
 data_calitoo_ours = calitoo(r'../Daten calitoo/0124_20240604_075512_10_ours_adjusted.txt')
 
@@ -81,27 +100,27 @@ data_calitoo_ours = calitoo(r'../Daten calitoo/0124_20240604_075512_10_ours_adju
 
 wavelengths_aer = ['AOD_440nm', 'AOD_500nm'] # 'AOD_340nm', 'AOD_380nm',,'AOD_675nm','AOD_500nm'
 wavelengths_cal = ['AOT465', 'AOT540', 'AOT619']
-instruments = ['Modis deep blue'] #, 'OMAE' 'Modis AOD',
+instruments = ['Modis AOD Terra'] #, 'OMAE' 'Modis AOD',
 
 
+def main():
+    for wavelength in wavelengths_aer:
+        plt.plot(data_aeronet['Day_of_Year'], data_aeronet[wavelength], label=f'{wavelength} Aeronet')
+    plt.scatter(data_aeronet['Day_of_Year'], np.full((data_aeronet.shape[0],), 0.02), label='Datapoints earo')
 
-for wavelength in wavelengths_aer:
-    plt.plot(data_aeronet['Day_of_Year'], data_aeronet[wavelength], label=f'{wavelength} Aeronet')
-plt.scatter(data_aeronet['Day_of_Year'], np.full((data_aeronet.shape[0],), 0.02), label='Datapoints earo')
-
-for instrument in instruments:
-    plt.plot(data_satelite['time'].dt.dayofyear, data_satelite[instrument], label=instrument )
+    for instrument in instruments:
+        plt.plot(data_satelite['time'].dt.dayofyear, data_satelite[instrument], label=instrument )
 
 
-for wavelength in wavelengths_cal:
-    plt.plot(data_calitoo_ours['Date'].dt.dayofyear, data_calitoo_ours[wavelength].where(data_calitoo_ours[wavelength]<0.5),  label=f'{wavelength} Calitoo')
-plt.scatter(data_calitoo_ours['Date'].dt.dayofyear, np.full((data_calitoo_ours.shape[0],), 0.02), label='Datapoints cal')
+    for wavelength in wavelengths_cal:
+        plt.plot(data_calitoo_ours['Date'].dt.dayofyear, data_calitoo_ours[wavelength].where(data_calitoo_ours[wavelength]<0.5),  label=f'{wavelength} Calitoo')
+    plt.scatter(data_calitoo_ours['Date'].dt.dayofyear, np.full((data_calitoo_ours.shape[0],), 0.02), label='Datapoints cal')
 
-plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-plt.xlabel('Day of year')
-plt.ylabel('AOD')
-plt.title('Combined data')
-plt.ylim([0,1])
-plt.xlim([200,300])
-plt.show()
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.xlabel('Day of year')
+    plt.ylabel('AOD')
+    plt.title('Combined data')
+    plt.ylim([0,1])
+    plt.xlim([245,340])
+    plt.show()
 

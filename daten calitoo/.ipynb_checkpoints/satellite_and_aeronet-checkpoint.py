@@ -30,18 +30,24 @@ def aeronet(location):
     return data_aeronet
 
 
-def satelite():
+def satelite(start_day, end_day):
     
-    modisAOD = pd.read_csv(r'../data_satelite/g4.areaAvgTimeSeries.MOD08_D3_6_1_Aerosol_Optical_Depth_Land_Ocean_Mean.20240601-20241201.7E_47N_8E_48N.csv', skiprows=7)
-    modis_deep_blue = pd.read_csv(r'../data_satelite/g4.areaAvgTimeSeries.MOD08_D3_6_1_Deep_Blue_Aerosol_Optical_Depth_550_Land_Mean.20240601-20241201.7E_47N_8E_48N.csv', skiprows=7)
-    AOD_463 = pd.read_csv(r'../data_satelite/g4.areaAvgTimeSeries.OMAEROe_003_AbsorbingAerosolOpticalThicknessMW_463_0.20240601-20241201.7E_47N_8E_48N.csv', skiprows=7)
+    modisAOD_terra = pd.read_csv(r'../data_satelite/g4.areaAvgTimeSeries.MOD08_D3_6_1_Aerosol_Optical_Depth_Land_Ocean_Mean.20240801-20241130.7E_47N_8E_48N.csv', skiprows=7)
+    modis_deep_blue_terra = pd.read_csv(r'../data_satelite/g4.areaAvgTimeSeries.MOD08_D3_6_1_Deep_Blue_Aerosol_Optical_Depth_550_Land_Mean.20240601-20241201.7E_47N_8E_48N.csv', skiprows=7)
+    modisAOD_aqua = pd.read_csv(r'../data_satelite/g4.areaAvgTimeSeries.MYD08_D3_6_1_Aerosol_Optical_Depth_Land_Ocean_Mean.20240801-20241130.7E_47N_8E_48N.csv', skiprows=7)
+    modis_deep_blue_aqua = pd.read_csv(r'../data_satelite/g4.areaAvgTimeSeries.MYD08_D3_6_1_Aerosol_Optical_Depth_Land_Ocean_Mean.20240801-20241130.7E_47N_8E_48N.csv', skiprows=7)
+
+    omi_aod_483 = pd.read(r'../data_satelite/g4.areaAvgTimeSeries.OMAEROe_003_AerosolOpticalThicknessMW_483_5.20240801-20241130.7E_47N_8E_48N.csv')
+    omi_aod_483 = pd.read(r'../data_satelite/g4.areaAvgTimeSeries.OMAERUVd_003_FinalAerosolAbsOpticalDepth500.20240801-20241130.7E_47N_8E_48N.csv')
+    omi_aod_483 = pd.read(r'../data_satelite/g4.areaAvgTimeSeries.OMAERUVd_003_FinalAerosolOpticalDepth500.20240801-20241130.7E_47N_8E_48N.csv')
+    
     
     modisAOD = modisAOD.replace(-9999, np.nan)
     modis_deep_blue = modis_deep_blue.replace(-9999,np.nan)
     AOD_463 = AOD_463.replace(-32767, np.nan)
     data_satelite = pd.concat([modisAOD, modis_deep_blue.drop(columns='time'),AOD_463.drop(columns='time')], axis=1)
     data_satelite['time'] = pd.to_datetime(data_satelite['time'], format='%Y-%m-%d')
-    data_satelite.columns = ['time', 'Modis AOD', 'Modis deep blue', 'OMAE']
+    data_satelite.columns = ['time', 'Modis AOD', 'Modis deep blue', 'Omi']
     
     instruments = ['Modis AOD', 'Modis deep blue', 'OMAE']
     for instrument in instruments:
@@ -51,6 +57,7 @@ def satelite():
     plt.title('Satellite data')
     plt.xlabel('Day of year')
     plt.ylabel('AOD')
+    plt.xlim([start_day, end_day])
     plt.show()
     return data_satelite
 
@@ -73,7 +80,7 @@ def calitoo(filepath):
     return data_calitoo_ours
 
 
-data_satelite = satelite()
+data_satelite = satelite(245,340) 
 data_aeronet = aeronet('laegern')
 data_calitoo_ours = calitoo(r'../Daten calitoo/0124_20240604_075512_10_ours_adjusted.txt')
 
